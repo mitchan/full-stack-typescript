@@ -2,6 +2,20 @@ import cors from 'cors';
 import express from 'express';
 import type { Database } from 'sqlite';
 import { handleError } from './handle-error.js';
+import z from 'zod';
+
+const taskSchema = z.object({
+  id: z.coerce.number(),
+  title: z.string(),
+  description: z.string().optional(),
+  completed: z.coerce.boolean().optional(),
+});
+
+const createTaskSchema = taskSchema.omit({
+  id: true,
+});
+
+const updateTaskSchema = createTaskSchema.partial();
 
 export async function createServer(database: Database) {
   const app = express();
@@ -45,7 +59,7 @@ export async function createServer(database: Database) {
 
   app.post('/tasks', async (req, res) => {
     try {
-      const task = req.body;
+      const task = createTaskSchema.parse(req.body);
       if (!task.title) return res.status(400).json({ message: 'Title is required' });
 
       await createTask.run([task.title, task.description]);
@@ -58,14 +72,14 @@ export async function createServer(database: Database) {
   // Update a task
   app.put('/tasks/:id', async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = z.object({ id: z.coerce.number() }).parse(req.params);
 
-      const previous = await getTask.get([id]);
-      const updates = req.body;
+      const previous = taskSchema.parse(await getTask.get([id]));
+      const updates = updateTaskSchema.parse(req.body);
       const task = { ...previous, ...updates };
 
       await updateTask.run([task.title, task.description, task.completed, id]);
-      return res.status(200).json({message: 'Task updated successfully'});
+      return res.status(200).json({ message: 'Task updated successfully' });
     } catch (error) {
       return handleError(req, res, error);
     }
