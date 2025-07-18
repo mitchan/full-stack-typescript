@@ -3,19 +3,7 @@ import express from 'express';
 import type { Database } from 'sqlite';
 import { handleError } from './handle-error.js';
 import z from 'zod';
-
-const taskSchema = z.object({
-  id: z.coerce.number(),
-  title: z.string(),
-  description: z.string().optional(),
-  completed: z.coerce.boolean().optional(),
-});
-
-const createTaskSchema = taskSchema.omit({
-  id: true,
-});
-
-const updateTaskSchema = createTaskSchema.partial();
+import { createTaskSchema, taskSchema, updateTaskSchema } from 'busy-bee-schema';
 
 export async function createServer(database: Database) {
   const app = express();

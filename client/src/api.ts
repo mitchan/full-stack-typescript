@@ -1,4 +1,4 @@
-import { PartialTask, Task } from './types';
+import { PartialTask, Task, taskListSchema, taskSchema } from 'busy-bee-schema';
 
 const API_URL = 'http://localhost:4001';
 
@@ -15,7 +15,7 @@ export const fetchTasks = async (showCompleted: boolean): Promise<Task[]> => {
     throw new Error('Failed to fetch tasks');
   }
 
-  return response.json();
+  return taskListSchema.parse(response.json());
 };
 
 export const getTask = async (id: string): Promise<Task> => {
@@ -26,7 +26,7 @@ export const getTask = async (id: string): Promise<Task> => {
     throw new Error('Failed to fetch task');
   }
 
-  return response.json();
+  return taskSchema.parse(response.json());
 };
 
 export const createTask = async (task: PartialTask): Promise<void> => {
