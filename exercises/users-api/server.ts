@@ -3,29 +3,37 @@ import express from 'express';
 import getPort from 'get-port';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
+import z from 'zod';
 
 export const app = express();
 const port = await getPort({ port: 3000 });
 
 app.use(bodyParser.json());
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+const userSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string().email(),
+});
+
+const idSchema = userSchema.pick({ id: true });
+
+const createUserSchema = userSchema.pick({
+  name: true,
+  email: true,
+});
+
+const partialUserSchema = userSchema.partial().omit({ id: true });
+
+type User = z.infer<typeof userSchema>;
 
 const users: User[] = [];
 
 // Create a new user
 app.post('/users', (req, res) => {
-  const { name, email } = req.body;
+  const { name, email } = createUserSchema.parse(req.body);
 
-  if (!name || !email) {
-    return res.status(400).json({ message: 'Name and email are required' });
-  }
-
-  const newUser: User = { id: uuidv4(), name, email };
+  const newUser = userSchema.parse({ id: uuidv4(), name, email });
 
   users.push(newUser);
 
@@ -34,19 +42,19 @@ app.post('/users', (req, res) => {
 
 // Read all users
 app.get('/users', (req, res) => {
-  const { name, email } = req.query;
+  const { name, email } = partialUserSchema.parse(req.query);
 
   let filteredUsers = users;
 
   if (name) {
     filteredUsers = filteredUsers.filter((user) =>
-      user.name.toLowerCase().includes((name as string).toLowerCase()),
+      user.name.toLowerCase().includes(name.toLowerCase()),
     );
   }
 
   if (email) {
     filteredUsers = filteredUsers.filter((user) =>
-      user.email.toLowerCase().includes((email as string).toLowerCase()),
+      user.email.toLowerCase().includes(email.toLowerCase()),
     );
   }
 
@@ -55,7 +63,7 @@ app.get('/users', (req, res) => {
 
 // Read a single user by ID
 app.get('/users/:id', (req, res) => {
-  const { id } = req.params;
+  const { id } = idSchema.parse(req.params);
 
   const user = users.find((u) => u.id === id);
 
@@ -68,7 +76,7 @@ app.get('/users/:id', (req, res) => {
 
 // Update a user by ID
 app.put('/users/:id', (req, res) => {
-  const { id } = req.params;
+  const { id } = idSchema.parse(req.params);
 
   const user = users.find((u) => u.id === id);
 
@@ -86,7 +94,7 @@ app.put('/users/:id', (req, res) => {
 
 // Delete a user by ID
 app.delete('/users/:id', (req, res) => {
-  const id = req.params.id;
+  const { id } = idSchema.parse(req.params.id);
 
   const index = users.findIndex((u) => u.id === id);
 
