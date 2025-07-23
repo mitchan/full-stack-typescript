@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export type Task = z.infer<typeof taskSchema>;
 export type PartialTask = z.infer<typeof updateTaskSchema>;
+export type CreateTask = z.infer<typeof createTaskSchema>;
 
 export const taskSchema = z.object({
   id: z.coerce.number(),
