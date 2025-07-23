@@ -4,11 +4,20 @@ import type { Database } from 'sqlite';
 import { handleError } from './handle-error.js';
 import z, { ZodSchema } from 'zod';
 import { createTaskSchema, taskSchema, updateTaskSchema } from 'busy-bee-schema';
+import { middleware } from 'express-openapi-validator';
 
 export async function createServer(database: Database) {
   const app = express();
   app.use(cors());
   app.use(express.json());
+
+  app.use(
+    middleware({
+      apiSpec: './openapi.json',
+      validateRequests: true,
+      validateResponses: false,
+    }),
+  );
 
   const incompleteTasks = await database.prepare('SELECT * FROM tasks whERE completed = 0');
   const completedTasks = await database.prepare('SELECT * FROM tasks WHERE completed = 1');
